@@ -36,7 +36,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
     public ResponseEntity<ErrorResponseDto> handleHttpMediaTypeNotSupportedException(HttpMediaTypeNotSupportedException ex) {
-        StringBuilder message = new StringBuilder("Invalid file format: '%s'.");
+        StringBuilder message = new StringBuilder("Invalid file format: %s.");
 
         boolean isAudioType = ex.getSupportedMediaTypes().stream()
                 .anyMatch(type -> Constants.RESOURCE_SUPPORTED_MEDIA_TYPE.equals(type.toString()));
