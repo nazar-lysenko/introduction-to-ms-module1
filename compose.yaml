@@ -64,6 +64,7 @@ services:
       start_period: 15s
     environment:
       SERVICE_REGISTRY_PORT: ${SERVICE_REGISTRY_PORT}
+      SERVICE_REGISTRY_EMPTY_SYNC_WAIT_MS: ${SERVICE_REGISTRY_EMPTY_SYNC_WAIT_MS}
     restart: on-failure
 
   api-gateway:

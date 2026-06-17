@@ -13,11 +13,13 @@
     <version>0.0.1-SNAPSHOT</version>
     <name>resource-service</name>
     <description>resource-service</description>
+
     <properties>
         <java.version>21</java.version>
         <mapstruct.version>1.5.5.Final</mapstruct.version>
         <spring.cloud.version>2025.1.2</spring.cloud.version>
     </properties>
+
     <dependencies>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -114,5 +116,4 @@
             </plugin>
         </plugins>
     </build>
-
 </project>
