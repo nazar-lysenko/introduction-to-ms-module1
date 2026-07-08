@@ -30,7 +30,16 @@ services:
       API_GATEWAY_URL: ${API_GATEWAY_URL}
       SERVICE_REGISTRY_URL: ${SERVICE_REGISTRY_URL}
       SERVICE_REGISTRY_PREFER_IP: ${SERVICE_REGISTRY_PREFER_IP}
+      AWS_ENDPOINT_URL: ${AWS_ENDPOINT_URL}
+      AWS_REGION: ${AWS_REGION}
+      AWS_BUCKET_NAME: ${AWS_BUCKET_NAME}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
     depends_on:
+      resource-processor:
+        condition: service_healthy
+      localstack:
+        condition: service_healthy
       resource-db:
         condition: service_started
       service-registry:
@@ -49,6 +58,21 @@ services:
     depends_on:
       song-db:
         condition: service_started
+      service-registry:
+        condition: service_healthy
+
+  resource-processor:
+    build: ./resource-processor
+    environment:
+      SERVICE_REGISTRY_URL: ${SERVICE_REGISTRY_URL}
+      SERVICE_REGISTRY_PREFER_IP: ${SERVICE_REGISTRY_PREFER_IP}
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    depends_on:
       service-registry:
         condition: service_healthy
 
@@ -79,3 +103,20 @@ services:
     depends_on:
       service-registry:
           condition: service_healthy
+
+  localstack:
+    image: localstack/localstack:3
+    ports:
+      - "4566:4566"
+    environment:
+      SERVICES: s3
+      DEFAULT_REGION: eu-central-1
+      AWS_DEFAULT_REGION: eu-central-1
+    volumes:
+      - ./init-scripts/localstack:/etc/localstack/init/ready.d
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4566/_localstack/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s

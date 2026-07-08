@@ -1,4 +1,4 @@
-package com.resourceservice.metadata;
+package com.resourceprocessor.metadata;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
