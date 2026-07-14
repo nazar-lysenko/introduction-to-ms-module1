@@ -1,4 +1,4 @@
-package com.resourceservice.metadata;
+package com.resourceprocessor.metadata;
 
 public record ResourceMetadata(
         Long id,
