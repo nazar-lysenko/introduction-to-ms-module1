@@ -2,6 +2,7 @@ package com.resourceservice.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.retry.annotation.EnableRetry;
 import org.springframework.web.client.RestTemplate;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
@@ -10,6 +11,7 @@ import software.amazon.awssdk.services.s3.S3Client;
 
 import java.net.URI;
 
+@EnableRetry
 @Configuration
 public class ApplicationConfiguration {
     @Bean

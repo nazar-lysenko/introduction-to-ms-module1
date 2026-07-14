@@ -1,6 +1,7 @@
 package com.resourceservice.resource;
 
 import com.resourceservice.client.SongServiceClient;
+import com.resourceservice.messaging.ResourceEventPublisher;
 import com.resourceservice.resource.dto.ResourceCreatedDto;
 import com.resourceservice.resource.dto.ResourceDeletedDto;
 import com.resourceservice.storage.StorageService;
@@ -25,6 +26,7 @@ public class ResourceService {
     private final ResourceMapper resourceMapper;
     private final SongServiceClient songServiceClient;
     private final StorageService storageService;
+    private final ResourceEventPublisher resourceEventPublisher;
 
     @Transactional
     public ResourceCreatedDto createResource(byte[] data) {
@@ -39,6 +41,8 @@ public class ResourceService {
             storageService.delete(storagePath);
             throw ex;
         }
+
+        resourceEventPublisher.publishResourceCreated(resource.getId());
 
         return resourceMapper.toCreatedDto(resource);
     }
@@ -62,7 +66,7 @@ public class ResourceService {
 
         resourceRepository.deleteByIds(existingIds);
         songServiceClient.deleteSongMetadata(existingIds);
-        storageService.delete(existingPaths);
+        existingPaths.forEach(storageService::delete);
 
         return new ResourceDeletedDto(existingIds);
     }
