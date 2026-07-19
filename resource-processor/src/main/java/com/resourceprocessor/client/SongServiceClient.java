@@ -1,26 +1,27 @@
-package com.resourceservice.client;
+package com.resourceprocessor.client;
 
-import com.resourceservice.config.SongServiceProperties;
+import com.resourceprocessor.metadata.ResourceMetadata;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.ResourceAccessException;
+import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestTemplate;
-import org.springframework.web.util.UriComponentsBuilder;
 
-import java.net.URI;
-import java.util.List;
-
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class SongServiceClient {
-    private static final String SONG_SERVICE_ROOT_PATH = "/songs";
-    private static final String SONG_SERVICE_ID_PARAM = "id";
+
+    private static final String SONGS_PATH = "/songs";
+
+    @Value("${song-service.url}")
+    private String songServiceUrl;
 
     private final RestTemplate restTemplate;
-    private final SongServiceProperties songServiceProperties;
 
     @Retryable(
             retryFor = {ResourceAccessException.class, HttpServerErrorException.class},
@@ -30,13 +31,8 @@ public class SongServiceClient {
                     multiplierExpression = "${retry.multiplier:2}"
             )
     )
-    public void deleteSongMetadata(List<Long> ids) {
-        URI uri = UriComponentsBuilder.fromUriString(songServiceProperties.getUrl())
-                .path(SONG_SERVICE_ROOT_PATH)
-                .queryParam(SONG_SERVICE_ID_PARAM, ids.toArray())
-                .build()
-                .toUri();
-
-        restTemplate.delete(uri);
+    public void createSong(ResourceMetadata metadata) {
+        log.info("Creating song metadata for resourceId={}", metadata.id());
+        restTemplate.postForObject(songServiceUrl + SONGS_PATH, metadata, Void.class);
     }
 }
