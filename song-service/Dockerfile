@@ -4,7 +4,7 @@ FROM maven:3.9-eclipse-temurin-21-alpine AS build
 WORKDIR /song-service
 
 COPY pom.xml .
-RUN mvn dependency:go-offline -q
+RUN mvn dependency:go-offline -q -Dmaven.resolver.transport=wagon
 
 COPY src ./src
 RUN mvn clean package -Dmaven.test.skip=true

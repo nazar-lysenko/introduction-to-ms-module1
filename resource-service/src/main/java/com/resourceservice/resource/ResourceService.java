@@ -62,6 +62,11 @@ public class ResourceService {
 
         List<Resource> existingResources = resourceRepository.findAllById(ids);
         List<Long> existingIds = existingResources.stream().map(Resource::getId).toList();
+
+        if (existingIds.isEmpty()) {
+            return new ResourceDeletedDto(existingIds);
+        }
+
         List<String> existingPaths = existingResources.stream().map(Resource::getStoragePath).toList();
 
         resourceRepository.deleteByIds(existingIds);
