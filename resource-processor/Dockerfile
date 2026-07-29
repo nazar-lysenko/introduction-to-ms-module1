@@ -16,4 +16,6 @@ WORKDIR /resource-processor
 
 COPY --from=build /resource-processor/target/*.jar ./resource-processor.jar
 
+EXPOSE 8082
+
 CMD ["java", "-jar", "resource-processor.jar"]
