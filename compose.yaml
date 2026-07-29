@@ -133,7 +133,10 @@ services:
     ports:
       - "${API_GATEWAY_PORT}:8084"
     environment:
+      CONFIG_SERVER_URL: ${CONFIG_SERVER_URL}
       SERVICE_REGISTRY_URL: ${SERVICE_REGISTRY_URL}
+      SERVICE_REGISTRY_PREFER_IP: ${SERVICE_REGISTRY_PREFER_IP}
+      API_GATEWAY_PORT: ${API_GATEWAY_PORT}
       API_GATEWAY_CACHE_TTL: ${API_GATEWAY_CACHE_TTL}
       API_GATEWAY_LOG_LEVEL: ${API_GATEWAY_LOG_LEVEL}
       SERVICE_REGISTRY_CLIENT_FETCH_INTERVAL_SECONDS: ${SERVICE_REGISTRY_CLIENT_FETCH_INTERVAL_SECONDS}
@@ -147,11 +150,13 @@ services:
     depends_on:
       service-registry:
         condition: service_healthy
+      config-service:
+        condition: service_healthy
 
   kafka:
     image: apache/kafka:3.9.0
     ports:
-      - "29092:29092"
+      - "${KAFKA_EXTERNAL_PORT}:29092"
     environment:
       KAFKA_NODE_ID: ${KAFKA_NODE_ID}
       KAFKA_PROCESS_ROLES: ${KAFKA_PROCESS_ROLES}
@@ -174,7 +179,7 @@ services:
   kafka-ui:
     image: provectuslabs/kafka-ui:latest
     ports:
-      - "8090:8080"
+      - "${KAFKA_UI_PORT}:8080"
     environment:
       KAFKA_CLUSTERS_0_NAME: local
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
@@ -185,7 +190,7 @@ services:
   localstack:
     image: localstack/localstack:3
     ports:
-      - "4566:4566"
+      - "${LOCALSTACK_PORT}:4566"
     environment:
       SERVICES: ${LOCALSTACK_SERVICES}
       DEFAULT_REGION: ${AWS_REGION}
@@ -198,3 +203,21 @@ services:
       timeout: 5s
       retries: 10
       start_period: 15s
+
+  config-service:
+    build: ./config-service
+    ports:
+      - "${CONFIG_SERVICE_PORT}:8888"
+    environment:
+      CONFIG_REPO_URI: ${CONFIG_REPO_URI}
+      SERVICE_REGISTRY_URL: ${SERVICE_REGISTRY_URL}
+      SERVICE_REGISTRY_PREFER_IP: ${SERVICE_REGISTRY_PREFER_IP}
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8888/actuator/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    depends_on:
+      service-registry:
+        condition: service_healthy
