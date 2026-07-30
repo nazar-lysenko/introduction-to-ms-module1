@@ -12,6 +12,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -31,9 +32,13 @@ public class SongServiceClient {
             )
     )
     public void deleteSongMetadata(List<Long> ids) {
+        String csvIds = ids.stream()
+                .map(String::valueOf)
+                .collect(Collectors.joining(","));
+
         URI uri = UriComponentsBuilder.fromUriString(songServiceProperties.getUrl())
                 .path(SONG_SERVICE_ROOT_PATH)
-                .queryParam(SONG_SERVICE_ID_PARAM, ids.toArray())
+                .queryParam(SONG_SERVICE_ID_PARAM, csvIds)
                 .build()
                 .toUri();
 

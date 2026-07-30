@@ -8,7 +8,7 @@ import org.springframework.data.repository.query.Param;
 import java.util.List;
 
 public interface ResourceRepository extends JpaRepository<Resource, Long> {
-    @Modifying
+    @Modifying(clearAutomatically = true)
     @Query("DELETE FROM Resource r WHERE r.id IN :ids")
     void deleteByIds(@Param("ids") List<Long> ids);
 }

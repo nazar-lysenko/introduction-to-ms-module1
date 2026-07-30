@@ -2,6 +2,7 @@ package com.resourceprocessor.metadata;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.tika.metadata.Metadata;
 import org.apache.tika.metadata.TikaCoreProperties;
 import org.apache.tika.parser.AutoDetectParser;
@@ -17,9 +18,7 @@ import java.time.Duration;
 @Slf4j
 @RequiredArgsConstructor
 public class ResourceMetadataExtractorService {
-    private static final String METADATA_ALBUM_KEY = "xmpDM:album";
-    private static final String METADATA_DURATION_KEY = "xmpDM:duration";
-    private static final String METADATA_RELEASE_DATE_KEY = "xmpDM:releaseDate";
+    static final String METADATA_EXTRACTION_EXCEPTION_MESSAGE = "Can not extract metadata from resource";
     private static final String METADATA_DURATION_FORMAT = "%02d:%02d";
 
     private final AutoDetectParser autoDetectParser;
@@ -34,19 +33,23 @@ public class ResourceMetadataExtractorService {
                     id,
                     metadata.get(TikaCoreProperties.TITLE),
                     metadata.get(TikaCoreProperties.CREATOR),
-                    metadata.get(METADATA_ALBUM_KEY),
-                    formatDuration(metadata.get(METADATA_DURATION_KEY)),
-                    metadata.get(METADATA_RELEASE_DATE_KEY)
+                    metadata.get(MetadataConstants.ALBUM_KEY),
+                    formatDuration(metadata.get(MetadataConstants.DURATION_KEY)),
+                    metadata.get(MetadataConstants.RELEASE_DATE_KEY)
             );
         } catch (Exception e) {
-            throw new MetadataExtractionException("Can not extract metadata from resource", e);
+            throw new MetadataExtractionException(METADATA_EXTRACTION_EXCEPTION_MESSAGE, e);
         }
     }
 
     private String formatDuration(String durationSeconds) {
+        if (StringUtils.isBlank(durationSeconds)) {
+            return null;
+        }
+
         double seconds = Double.parseDouble(durationSeconds);
         Duration duration = Duration.ofSeconds((long) seconds);
 
-        return String.format(METADATA_DURATION_FORMAT, duration.toMinutes(), duration.toSeconds());
+        return String.format(METADATA_DURATION_FORMAT, duration.toMinutes(), duration.toSecondsPart());
     }
 }
