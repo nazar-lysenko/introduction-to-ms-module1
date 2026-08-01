@@ -5,7 +5,8 @@ Feature: Resource Management
 
   Background:
     Given the resource-service is running
-    And the S3 bucket "resources-bucket" exists
+    And the S3 bucket "staging-bucket" exists
+    And the S3 bucket "permanent-bucket" exists
     And the song-service is available
 
   Scenario: Successfully upload an MP3 file

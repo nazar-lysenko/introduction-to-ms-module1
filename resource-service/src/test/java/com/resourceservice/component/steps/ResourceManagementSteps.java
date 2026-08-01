@@ -3,7 +3,6 @@ package com.resourceservice.component.steps;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.stubbing.Scenario;
 import com.resourceservice.component.ComponentTestConfiguration;
-import com.resourceservice.config.S3Properties;
 import com.resourceservice.resource.Resource;
 import com.resourceservice.resource.ResourceRepository;
 import io.cucumber.java.Before;
@@ -47,6 +46,8 @@ import java.util.concurrent.TimeUnit;
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.delete;
 import static com.github.tomakehurst.wiremock.client.WireMock.deleteRequestedFor;
+import static com.github.tomakehurst.wiremock.client.WireMock.get;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
@@ -69,6 +70,12 @@ public class ResourceManagementSteps {
     private static final Duration KAFKA_DRAIN_WINDOW = Duration.ofSeconds(3);
     private static final long DB_AWAIT_TIMEOUT_SECONDS = 5L;
     private static final long WIREMOCK_AWAIT_TIMEOUT_SECONDS = 10L;
+    private static final String STORAGE_SERVICE_RESPONSE = """
+            [
+              {"id":1,"storageType":"STAGING","bucket":"staging-bucket","path":"/files"},
+              {"id":2,"storageType":"PERMANENT","bucket":"permanent-bucket","path":"/files"}
+            ]
+            """;
 
     private static KafkaConsumer<String, Long> testConsumer;
 
@@ -102,9 +109,6 @@ public class ResourceManagementSteps {
     @Autowired
     private S3Client s3Client;
 
-    @Autowired
-    private S3Properties s3Properties;
-
     private final RestTemplate restTemplate = new RestTemplate();
 
     private byte[] requestPayload;
@@ -112,10 +116,16 @@ public class ResourceManagementSteps {
     private ResponseEntity<?> lastResponse;
     private Long storedResourceId;
     private String storedS3Path;
+    private String storedS3Bucket;
 
     @Before
     public void resetState() {
         wireMockServer.resetAll();
+        // Always stub storage-service so resource-service can resolve STAGING/PERMANENT buckets
+        wireMockServer.stubFor(get(urlEqualTo("/storages"))
+                .willReturn(aResponse()
+                        .withHeader("Content-Type", "application/json")
+                        .withBody(STORAGE_SERVICE_RESPONSE)));
         resourceRepository.deleteAll();
         getTestConsumer().poll(KAFKA_POLL_INTERVAL);
         requestPayload = null;
@@ -123,6 +133,7 @@ public class ResourceManagementSteps {
         lastResponse = null;
         storedResourceId = null;
         storedS3Path = null;
+        storedS3Bucket = null;
     }
 
     @Given("the resource-service is running")
@@ -173,6 +184,7 @@ public class ResourceManagementSteps {
         Optional<Resource> resource = resourceRepository.findById(storedResourceId);
         assertThat(resource).isPresent();
         storedS3Path = resource.get().getStoragePath();
+        storedS3Bucket = resource.get().getStorageBucket();
     }
 
     @And("the song-service will successfully delete songs for the resource")
@@ -270,7 +282,8 @@ public class ResourceManagementSteps {
         Resource resource = resourceRepository.findById(storedResourceId)
                 .orElseThrow(() -> new AssertionError("Resource not found in DB"));
         storedS3Path = resource.getStoragePath();
-        assertS3ObjectExists(storedS3Path);
+        storedS3Bucket = resource.getStorageBucket();
+        assertS3ObjectExists(storedS3Bucket, storedS3Path);
     }
 
     @And("a resource record should be saved in the database")
@@ -327,7 +340,7 @@ public class ResourceManagementSteps {
 
     @And("the MP3 file should be removed from S3")
     public void theMp3FileShouldBeRemovedFromS3() {
-        assertS3ObjectAbsent(storedS3Path);
+        assertS3ObjectAbsent(storedS3Bucket, storedS3Path);
     }
 
     @And("the song-service should have received a delete request")
@@ -390,24 +403,24 @@ public class ResourceManagementSteps {
         return collected;
     }
 
-    private void assertS3ObjectExists(String key) {
+    private void assertS3ObjectExists(String bucket, String key) {
         try {
             s3Client.headObject(HeadObjectRequest.builder()
-                    .bucket(s3Properties.getBucket())
+                    .bucket(bucket)
                     .key(key)
                     .build());
         } catch (NoSuchKeyException e) {
-            throw new AssertionError("Expected S3 object to exist but not found: " + key);
+            throw new AssertionError("Expected S3 object to exist but not found: bucket=" + bucket + " key=" + key);
         }
     }
 
-    private void assertS3ObjectAbsent(String key) {
+    private void assertS3ObjectAbsent(String bucket, String key) {
         try {
             s3Client.headObject(HeadObjectRequest.builder()
-                    .bucket(s3Properties.getBucket())
+                    .bucket(bucket)
                     .key(key)
                     .build());
-            throw new AssertionError("Expected S3 object to be absent but it exists: " + key);
+            throw new AssertionError("Expected S3 object to be absent but it exists: bucket=" + bucket + " key=" + key);
         } catch (NoSuchKeyException ignored) {
         }
     }

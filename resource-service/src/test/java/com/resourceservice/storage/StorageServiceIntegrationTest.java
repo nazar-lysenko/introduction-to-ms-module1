@@ -43,11 +43,12 @@ class StorageServiceIntegrationTest {
                             .forStatusCode(200));
 
     private static final String BUCKET_NAME = "test-bucket";
+    private static final String STORAGE_PATH = "/resources";
+    private static final String EXPECTED_KEY_PREFIX = "resources/";
+    private static final String EXPECTED_KEY_SUFFIX = ".mp3";
     private static final byte[] TEST_DATA = "mp3 content".getBytes();
     private static final byte[] TEST_DATA_1 = "first mp3".getBytes();
     private static final byte[] TEST_DATA_2 = "second mp3".getBytes();
-    private static final String EXPECTED_KEY_PREFIX = "resources/";
-    private static final String EXPECTED_KEY_SUFFIX = ".mp3";
 
     @DynamicPropertySource
     static void overrideProperties(DynamicPropertyRegistry registry) {
@@ -75,29 +76,49 @@ class StorageServiceIntegrationTest {
 
     @Test
     void shouldUploadAndDownload() {
-        String key = storageService.upload(TEST_DATA);
+        String key = storageService.upload(TEST_DATA, BUCKET_NAME, STORAGE_PATH);
 
         assertThat(key).startsWith(EXPECTED_KEY_PREFIX).endsWith(EXPECTED_KEY_SUFFIX);
-        assertThat(storageService.download(key)).isEqualTo(TEST_DATA);
+        assertThat(storageService.download(BUCKET_NAME, key)).isEqualTo(TEST_DATA);
     }
 
     @Test
     void shouldDeleteUploadedObject() {
-        String key = storageService.upload(TEST_DATA);
+        String key = storageService.upload(TEST_DATA, BUCKET_NAME, STORAGE_PATH);
 
-        storageService.delete(key);
+        storageService.delete(BUCKET_NAME, key);
 
-        assertThrows(NoSuchKeyException.class, () -> storageService.download(key));
+        assertThrows(NoSuchKeyException.class, () -> storageService.download(BUCKET_NAME, key));
     }
 
     @Test
     void shouldUploadMultipleObjectsWithUniqueKeys() {
-        String key1 = storageService.upload(TEST_DATA_1);
-        String key2 = storageService.upload(TEST_DATA_2);
+        String key1 = storageService.upload(TEST_DATA_1, BUCKET_NAME, STORAGE_PATH);
+        String key2 = storageService.upload(TEST_DATA_2, BUCKET_NAME, STORAGE_PATH);
 
         assertThat(key1).isNotEqualTo(key2);
-        assertThat(storageService.download(key1)).isEqualTo(TEST_DATA_1);
-        assertThat(storageService.download(key2)).isEqualTo(TEST_DATA_2);
+        assertThat(storageService.download(BUCKET_NAME, key1)).isEqualTo(TEST_DATA_1);
+        assertThat(storageService.download(BUCKET_NAME, key2)).isEqualTo(TEST_DATA_2);
     }
 
+    @Test
+    void shouldMoveObjectBetweenBuckets() {
+        String destBucket = "dest-bucket";
+        S3Client s3 = S3Client.builder()
+                .endpointOverride(localStack.getEndpointOverride(LocalStackContainer.Service.S3))
+                .region(Region.of(localStack.getRegion()))
+                .credentialsProvider(StaticCredentialsProvider.create(
+                        AwsBasicCredentials.create(localStack.getAccessKey(), localStack.getSecretKey())))
+                .forcePathStyle(true)
+                .build();
+        s3.createBucket(CreateBucketRequest.builder().bucket(destBucket).build());
+        s3.close();
+
+        String sourceKey = storageService.upload(TEST_DATA, BUCKET_NAME, STORAGE_PATH);
+        String destKey = storageService.move(BUCKET_NAME, sourceKey, destBucket, "/permanent");
+
+        assertThat(destKey).startsWith("permanent/").endsWith(".mp3");
+        assertThat(storageService.download(destBucket, destKey)).isEqualTo(TEST_DATA);
+        assertThrows(NoSuchKeyException.class, () -> storageService.download(BUCKET_NAME, sourceKey));
+    }
 }

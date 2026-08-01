@@ -1,6 +1,5 @@
-package com.resourceservice.resource;
+package com.storageservice.storage;
 
-import com.resourceservice.storage.StorageType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -9,23 +8,28 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
-import lombok.Data;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Entity
-@Table(name = "resources")
-@Data
-public class Resource {
+@Table(name = "storages")
+@Getter
+@Setter
+@NoArgsConstructor
+public class Storage {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "storage_path", nullable = false)
-    private String storagePath;
-
-    @Column(name = "storage_bucket", nullable = false)
-    private String storageBucket;
-
     @Enumerated(EnumType.STRING)
     @Column(name = "storage_type", nullable = false)
     private StorageType storageType;
+
+    @Column(nullable = false)
+    private String bucket;
+
+    @Column(nullable = false)
+    private String path;
 }

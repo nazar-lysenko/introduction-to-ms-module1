@@ -53,5 +53,6 @@ public class ComponentTestConfiguration {
         registry.add("spring.kafka.bootstrap-servers", kafka::getBootstrapServers);
         registry.add("aws.s3.endpoint", () -> localstack.getEndpointOverride(S3).toString());
         registry.add("song-service.url", () -> "http://localhost:" + wireMockServer.port());
+        registry.add("storage-service.url", () -> "http://localhost:" + wireMockServer.port());
     }
 }
