@@ -16,6 +16,7 @@ public class ResourceEventListener {
     private final ResourceServiceClient resourceServiceClient;
     private final ResourceMetadataExtractorService metadataExtractorService;
     private final SongServiceClient songServiceClient;
+    private final ResourceProcessedEventPublisher resourceProcessedEventPublisher;
 
     @KafkaListener(topics = "${kafka.topic.resource-events}")
     public void onResourceCreated(Long resourceId) {
@@ -23,6 +24,7 @@ public class ResourceEventListener {
         byte[] resourceData = resourceServiceClient.getResource(resourceId);
         ResourceMetadata metadata = metadataExtractorService.extract(resourceId, resourceData);
         songServiceClient.createSong(metadata);
+        resourceProcessedEventPublisher.publishResourceProcessed(resourceId);
         log.info("Successfully processed resource id={}", resourceId);
     }
 }

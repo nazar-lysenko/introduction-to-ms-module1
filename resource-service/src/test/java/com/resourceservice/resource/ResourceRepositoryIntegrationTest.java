@@ -16,6 +16,8 @@ import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
+import com.resourceservice.storage.StorageType;
+
 import java.util.List;
 import java.util.Optional;
 
@@ -26,10 +28,19 @@ import static org.assertj.core.api.Assertions.assertThat;
 @Testcontainers
 class ResourceRepositoryIntegrationTest {
 
-    private static final String STORAGE_PATH_1 = "s3://bucket/r1.mp3";
-    private static final String STORAGE_PATH_2 = "s3://bucket/r2.mp3";
-    private static final String STORAGE_PATH_3 = "s3://bucket/r3.mp3";
+    private static final String STORAGE_PATH_1 = "files/r1.mp3";
+    private static final String STORAGE_PATH_2 = "files/r2.mp3";
+    private static final String STORAGE_PATH_3 = "files/r3.mp3";
+    private static final String BUCKET = "staging-bucket";
     private static final long NON_EXISTING_ID = 9999L;
+
+    private Resource buildResource(String storagePath) {
+        Resource resource = new Resource();
+        resource.setStoragePath(storagePath);
+        resource.setStorageBucket(BUCKET);
+        resource.setStorageType(StorageType.STAGING);
+        return resource;
+    }
 
     @SpringBootConfiguration
     @EnableAutoConfiguration
@@ -54,8 +65,7 @@ class ResourceRepositoryIntegrationTest {
 
     @Test
     void shouldPersistResourceAndGenerateId() {
-        Resource resource = new Resource();
-        resource.setStoragePath(STORAGE_PATH_1);
+        Resource resource = buildResource(STORAGE_PATH_1);
 
         Resource saved = repository.save(resource);
 
@@ -65,8 +75,7 @@ class ResourceRepositoryIntegrationTest {
 
     @Test
     void shouldFindResourceById() {
-        Resource resource = new Resource();
-        resource.setStoragePath(STORAGE_PATH_1);
+        Resource resource = buildResource(STORAGE_PATH_1);
         Resource saved = repository.save(resource);
 
         Optional<Resource> found = repository.findById(saved.getId());
@@ -84,12 +93,9 @@ class ResourceRepositoryIntegrationTest {
 
     @Test
     void shouldFindAllByIdsReturnsOnlyMatchingEntities() {
-        Resource r1 = new Resource();
-        r1.setStoragePath(STORAGE_PATH_1);
-        Resource r2 = new Resource();
-        r2.setStoragePath(STORAGE_PATH_2);
-        Resource r3 = new Resource();
-        r3.setStoragePath(STORAGE_PATH_3);
+        Resource r1 = buildResource(STORAGE_PATH_1);
+        Resource r2 = buildResource(STORAGE_PATH_2);
+        Resource r3 = buildResource(STORAGE_PATH_3);
         repository.saveAll(List.of(r1, r2, r3));
 
         List<Resource> found = repository.findAllById(List.of(r1.getId(), r3.getId()));
@@ -101,8 +107,7 @@ class ResourceRepositoryIntegrationTest {
 
     @Test
     void shouldDeleteResourceById() {
-        Resource resource = new Resource();
-        resource.setStoragePath(STORAGE_PATH_1);
+        Resource resource = buildResource(STORAGE_PATH_1);
         Resource saved = repository.save(resource);
 
         repository.deleteById(saved.getId());
@@ -113,12 +118,9 @@ class ResourceRepositoryIntegrationTest {
     @Test
     @Transactional
     void shouldDeleteMultipleResourcesByCustomQuery() {
-        Resource r1 = new Resource();
-        r1.setStoragePath(STORAGE_PATH_1);
-        Resource r2 = new Resource();
-        r2.setStoragePath(STORAGE_PATH_2);
-        Resource r3 = new Resource();
-        r3.setStoragePath(STORAGE_PATH_3);
+        Resource r1 = buildResource(STORAGE_PATH_1);
+        Resource r2 = buildResource(STORAGE_PATH_2);
+        Resource r3 = buildResource(STORAGE_PATH_3);
         repository.saveAll(List.of(r1, r2, r3));
 
         repository.deleteByIds(List.of(r1.getId(), r2.getId()));
@@ -131,8 +133,7 @@ class ResourceRepositoryIntegrationTest {
     @Test
     @Transactional
     void shouldIgnoreNonExistingIdsInDeleteByIds() {
-        Resource resource = new Resource();
-        resource.setStoragePath(STORAGE_PATH_1);
+        Resource resource = buildResource(STORAGE_PATH_1);
         Resource saved = repository.save(resource);
 
         repository.deleteByIds(List.of(saved.getId(), NON_EXISTING_ID));

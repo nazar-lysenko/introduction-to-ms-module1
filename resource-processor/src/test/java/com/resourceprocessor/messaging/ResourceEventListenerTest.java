@@ -37,6 +37,9 @@ class ResourceEventListenerTest {
     @Mock
     private SongServiceClient songServiceClient;
 
+    @Mock
+    private ResourceProcessedEventPublisher resourceProcessedEventPublisher;
+
     @InjectMocks
     private ResourceEventListener resourceEventListener;
 
@@ -59,6 +62,7 @@ class ResourceEventListenerTest {
         verify(resourceServiceClient, Mockito.times(1)).getResource(TEST_RESOURCE_ID);
         verify(metadataExtractorService, Mockito.times(1)).extract(TEST_RESOURCE_ID, TEST_DATA);
         verify(songServiceClient, Mockito.times(1)).createSong(metadata);
+        verify(resourceProcessedEventPublisher, Mockito.times(1)).publishResourceProcessed(TEST_RESOURCE_ID);
     }
 
     @Test

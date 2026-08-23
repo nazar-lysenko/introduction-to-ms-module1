@@ -6,10 +6,7 @@ import org.springframework.stereotype.Component;
 
 @Data
 @Component
-@ConfigurationProperties(prefix = "aws.s3")
-public class S3Properties {
-    private String endpoint;
-    private String region;
-    private String accessKey;
-    private String secretKey;
+@ConfigurationProperties(prefix = "storage-service")
+public class StorageServiceProperties {
+    private String url;
 }
