@@ -60,6 +60,9 @@ services:
       SPRING_DATASOURCE_PASSWORD: ${STORAGE_DB_PASSWORD}
       SERVICE_REGISTRY_URL: ${SERVICE_REGISTRY_URL}
       SERVICE_REGISTRY_PREFER_IP: ${SERVICE_REGISTRY_PREFER_IP}
+      LOKI_URL: ${LOKI_URL}
+      ZIPKIN_URL: ${ZIPKIN_URL}
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: "health,info,prometheus"
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:8083/actuator/health || exit 1"]
       interval: 15s
@@ -92,6 +95,9 @@ services:
       KAFKA_TOPIC_PARTITIONS: ${KAFKA_TOPIC_PARTITIONS}
       KAFKA_TOPIC_REPLICAS: ${KAFKA_TOPIC_REPLICAS}
       KAFKA_CONSUMER_GROUP_ID_RESOURCE: ${KAFKA_CONSUMER_GROUP_ID_RESOURCE}
+      LOKI_URL: ${LOKI_URL}
+      ZIPKIN_URL: ${ZIPKIN_URL}
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: "health,info,prometheus"
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health || exit 1"]
       interval: 15s
@@ -122,6 +128,9 @@ services:
       SPRING_DATASOURCE_PASSWORD: ${SONG_DB_PASSWORD}
       SERVICE_REGISTRY_URL: ${SERVICE_REGISTRY_URL}
       SERVICE_REGISTRY_PREFER_IP: ${SERVICE_REGISTRY_PREFER_IP}
+      LOKI_URL: ${LOKI_URL}
+      ZIPKIN_URL: ${ZIPKIN_URL}
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: "health,info,prometheus"
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:8081/actuator/health || exit 1"]
       interval: 15s
@@ -144,6 +153,9 @@ services:
       KAFKA_TOPIC_RESOURCE_EVENTS: ${KAFKA_TOPIC_RESOURCE_EVENTS}
       KAFKA_TOPIC_RESOURCE_PROCESSED_EVENTS: ${KAFKA_TOPIC_RESOURCE_PROCESSED_EVENTS}
       KAFKA_CONSUMER_GROUP_ID: ${KAFKA_CONSUMER_GROUP_ID}
+      LOKI_URL: ${LOKI_URL}
+      ZIPKIN_URL: ${ZIPKIN_URL}
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: "health,info,prometheus"
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:8082/actuator/health || exit 1"]
       interval: 15s
@@ -170,6 +182,9 @@ services:
       start_period: 15s
     environment:
       SERVICE_REGISTRY_PORT: ${SERVICE_REGISTRY_PORT}
+      LOKI_URL: ${LOKI_URL}
+      ZIPKIN_URL: ${ZIPKIN_URL}
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: "health,info,prometheus"
     restart: on-failure
 
   api-gateway:
@@ -185,6 +200,9 @@ services:
       API_GATEWAY_LOG_LEVEL: ${API_GATEWAY_LOG_LEVEL}
       SERVICE_REGISTRY_CLIENT_FETCH_INTERVAL_SECONDS: ${SERVICE_REGISTRY_CLIENT_FETCH_INTERVAL_SECONDS}
       SERVICE_REGISTRY_CLIENT_LEASE_RENEWAL_INTERVAL_SECONDS: ${SERVICE_REGISTRY_CLIENT_LEASE_RENEWAL_INTERVAL_SECONDS}
+      LOKI_URL: ${LOKI_URL}
+      ZIPKIN_URL: ${ZIPKIN_URL}
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: "health,info,prometheus"
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:8084/actuator/health || exit 1"]
       interval: 15s
@@ -256,6 +274,9 @@ services:
       CONFIG_REPO_URI: ${CONFIG_REPO_URI}
       SERVICE_REGISTRY_URL: ${SERVICE_REGISTRY_URL}
       SERVICE_REGISTRY_PREFER_IP: ${SERVICE_REGISTRY_PREFER_IP}
+      LOKI_URL: ${LOKI_URL}
+      ZIPKIN_URL: ${ZIPKIN_URL}
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: "health,info,prometheus"
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:8888/actuator/health || exit 1"]
       interval: 15s
@@ -265,3 +286,38 @@ services:
     depends_on:
       service-registry:
         condition: service_healthy
+
+  prometheus:
+    image: prom/prometheus:v2.53.0
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+
+  loki:
+    image: grafana/loki:3.0.0
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./monitoring/loki-config.yaml:/etc/loki/local-config.yaml
+    command: -config.file=/etc/loki/local-config.yaml
+
+  zipkin:
+    image: openzipkin/zipkin:3
+    ports:
+      - "9411:9411"
+
+  grafana:
+    image: grafana/grafana:11.0.0
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards
+    depends_on:
+      - prometheus
+      - loki
+      - zipkin
