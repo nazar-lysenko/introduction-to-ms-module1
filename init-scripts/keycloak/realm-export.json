@@ -1,0 +1,97 @@
+{
+  "realm": "microservices",
+  "enabled": true,
+  "accessTokenLifespan": 86400,
+  "ssoSessionMaxLifespan": 86400,
+  "roles": {
+    "realm": [
+      {
+        "name": "ADMIN",
+        "composite": false,
+        "clientRole": false
+      },
+      {
+        "name": "USER",
+        "composite": false,
+        "clientRole": false
+      }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "postman-client",
+      "enabled": true,
+      "publicClient": true,
+      "directAccessGrantsEnabled": true,
+      "redirectUris": ["*"],
+      "webOrigins": ["*"],
+      "standardFlowEnabled": false
+    },
+    {
+      "clientId": "resource-service",
+      "enabled": true,
+      "publicClient": false,
+      "secret": "resource-service-secret",
+      "serviceAccountsEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "standardFlowEnabled": false
+    },
+    {
+      "clientId": "resource-processor",
+      "enabled": true,
+      "publicClient": false,
+      "secret": "resource-processor-secret",
+      "serviceAccountsEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "standardFlowEnabled": false
+    }
+  ],
+  "users": [
+    {
+      "username": "admin-user",
+      "enabled": true,
+      "firstName": "Admin",
+      "lastName": "User",
+      "email": "admin@example.com",
+      "emailVerified": true,
+      "requiredActions": [],
+      "credentials": [
+        {
+          "type": "password",
+          "value": "admin",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["ADMIN"]
+    },
+    {
+      "username": "regular-user",
+      "enabled": true,
+      "firstName": "Regular",
+      "lastName": "User",
+      "email": "user@example.com",
+      "emailVerified": true,
+      "requiredActions": [],
+      "credentials": [
+        {
+          "type": "password",
+          "value": "user",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["USER"]
+    },
+    {
+      "username": "service-account-resource-service",
+      "enabled": true,
+      "serviceAccountClientId": "resource-service",
+      "realmRoles": ["ADMIN"]
+    },
+    {
+      "username": "service-account-resource-processor",
+      "enabled": true,
+      "serviceAccountClientId": "resource-processor",
+      "realmRoles": ["ADMIN"]
+    }
+  ]
+}
