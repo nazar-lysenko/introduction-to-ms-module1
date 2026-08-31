@@ -40,10 +40,18 @@ public class GatewayConfig {
     }
 
     @Bean
+    public RouterFunction<ServerResponse> storageServiceRoute() {
+        return GatewayRouterFunctions.route("storage-service")
+                .route(RequestPredicates.path("/storages/**"), HandlerFunctions.http())
+                .filter(LoadBalancerFilterFunctions.lb("storage-service"))
+                .build();
+    }
+
+    @Bean
     @Order
     public RouterFunction<ServerResponse> fallbackRoute() {
         return RouterFunctions.route()
-                .route(RequestPredicates.all(), request -> {
+                .route(RequestPredicates.path("/actuator/**").negate(), request -> {
                     String path = request.uri().getPath();
                     ErrorResponse body = new ErrorResponse(
                             Instant.now(),

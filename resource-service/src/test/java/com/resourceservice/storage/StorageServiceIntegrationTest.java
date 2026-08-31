@@ -28,7 +28,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 @SpringBootTest(classes = {
         StorageService.class,
         ApplicationConfiguration.class
-})
+}, properties = "security.token-relay.enabled=disabled")
 @EnableConfigurationProperties(S3Properties.class)
 @ActiveProfiles("test")
 @Testcontainers

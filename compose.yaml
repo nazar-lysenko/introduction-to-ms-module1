@@ -60,6 +60,8 @@ services:
       SPRING_DATASOURCE_PASSWORD: ${STORAGE_DB_PASSWORD}
       SERVICE_REGISTRY_URL: ${SERVICE_REGISTRY_URL}
       SERVICE_REGISTRY_PREFER_IP: ${SERVICE_REGISTRY_PREFER_IP}
+      KEYCLOAK_JWK_SET_URI: ${KEYCLOAK_JWK_SET_URI}
+      KEYCLOAK_ISSUER_URI: ${KEYCLOAK_ISSUER_URI}
       LOKI_URL: ${LOKI_URL}
       ZIPKIN_URL: ${ZIPKIN_URL}
       MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: "health,info,prometheus"
@@ -73,6 +75,8 @@ services:
       storage-db:
         condition: service_healthy
       service-registry:
+        condition: service_healthy
+      keycloak:
         condition: service_healthy
 
   resource-service:
@@ -95,6 +99,9 @@ services:
       KAFKA_TOPIC_PARTITIONS: ${KAFKA_TOPIC_PARTITIONS}
       KAFKA_TOPIC_REPLICAS: ${KAFKA_TOPIC_REPLICAS}
       KAFKA_CONSUMER_GROUP_ID_RESOURCE: ${KAFKA_CONSUMER_GROUP_ID_RESOURCE}
+      KEYCLOAK_CLIENT_ID: resource-service
+      KEYCLOAK_CLIENT_SECRET: ${RESOURCE_SERVICE_CLIENT_SECRET}
+      KEYCLOAK_TOKEN_URI: ${KEYCLOAK_TOKEN_URI}
       LOKI_URL: ${LOKI_URL}
       ZIPKIN_URL: ${ZIPKIN_URL}
       MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: "health,info,prometheus"
@@ -116,6 +123,8 @@ services:
       api-gateway:
         condition: service_healthy
       storage-service:
+        condition: service_healthy
+      keycloak:
         condition: service_healthy
 
   song-service:
@@ -153,6 +162,9 @@ services:
       KAFKA_TOPIC_RESOURCE_EVENTS: ${KAFKA_TOPIC_RESOURCE_EVENTS}
       KAFKA_TOPIC_RESOURCE_PROCESSED_EVENTS: ${KAFKA_TOPIC_RESOURCE_PROCESSED_EVENTS}
       KAFKA_CONSUMER_GROUP_ID: ${KAFKA_CONSUMER_GROUP_ID}
+      KEYCLOAK_CLIENT_ID: resource-processor
+      KEYCLOAK_CLIENT_SECRET: ${RESOURCE_PROCESSOR_CLIENT_SECRET}
+      KEYCLOAK_TOKEN_URI: ${KEYCLOAK_TOKEN_URI}
       LOKI_URL: ${LOKI_URL}
       ZIPKIN_URL: ${ZIPKIN_URL}
       MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: "health,info,prometheus"
@@ -168,6 +180,8 @@ services:
       kafka:
         condition: service_healthy
       api-gateway:
+        condition: service_healthy
+      keycloak:
         condition: service_healthy
 
   service-registry:
@@ -200,9 +214,11 @@ services:
       API_GATEWAY_LOG_LEVEL: ${API_GATEWAY_LOG_LEVEL}
       SERVICE_REGISTRY_CLIENT_FETCH_INTERVAL_SECONDS: ${SERVICE_REGISTRY_CLIENT_FETCH_INTERVAL_SECONDS}
       SERVICE_REGISTRY_CLIENT_LEASE_RENEWAL_INTERVAL_SECONDS: ${SERVICE_REGISTRY_CLIENT_LEASE_RENEWAL_INTERVAL_SECONDS}
+      KEYCLOAK_JWK_SET_URI: ${KEYCLOAK_JWK_SET_URI}
+      KEYCLOAK_ISSUER_URI: ${KEYCLOAK_ISSUER_URI}
       LOKI_URL: ${LOKI_URL}
       ZIPKIN_URL: ${ZIPKIN_URL}
-      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: "health,info,prometheus"
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: "health,info,prometheus,refresh"
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:8084/actuator/health || exit 1"]
       interval: 15s
@@ -213,6 +229,8 @@ services:
       service-registry:
         condition: service_healthy
       config-service:
+        condition: service_healthy
+      keycloak:
         condition: service_healthy
 
   kafka:
@@ -265,6 +283,26 @@ services:
       timeout: 5s
       retries: 10
       start_period: 15s
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.2
+    command: start-dev --import-realm
+    ports:
+      - "${KEYCLOAK_PORT}:8080"
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN_USER}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+      KC_HTTP_ENABLED: "true"
+      KC_HOSTNAME_STRICT: "false"
+      KC_HOSTNAME: ${KEYCLOAK_HOSTNAME}
+    volumes:
+      - ./init-scripts/keycloak/realm-export.json:/opt/keycloak/data/import/realm-export.json
+    healthcheck:
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/localhost/8080 && echo -e 'GET /realms/microservices HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n' >&3 && cat <&3 | grep -q '200 OK'"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
 
   config-service:
     build: ./config-service

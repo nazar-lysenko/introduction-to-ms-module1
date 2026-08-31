@@ -1,9 +1,12 @@
 package com.e2e;
 
+import com.e2e.auth.AuthContext;
+import com.e2e.auth.BearerTokenFilter;
 import io.cucumber.spring.CucumberContextConfiguration;
 import io.restassured.RestAssured;
 import jakarta.annotation.PostConstruct;
 import org.junit.jupiter.api.Tag;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 
@@ -16,6 +19,9 @@ import static org.awaitility.Awaitility.await;
 @SpringBootTest(classes = E2ETestApplication.class)
 @Tag("e2e")
 public class E2ETestConfiguration {
+
+    @Autowired
+    private AuthContext authContext;
 
     @Value("${gateway.url}")
     private String gatewayUrl;
@@ -32,6 +38,7 @@ public class E2ETestConfiguration {
     @PostConstruct
     public void configureRestAssured() {
         RestAssured.baseURI = gatewayUrl;
+        RestAssured.replaceFiltersWith(new BearerTokenFilter(authContext));
         waitForSystemReady();
     }
 
@@ -40,12 +47,13 @@ public class E2ETestConfiguration {
                 .atMost(healthCheckTimeoutSeconds, TimeUnit.SECONDS)
                 .pollInterval(healthCheckPollIntervalSeconds, TimeUnit.SECONDS)
                 .ignoreExceptions()
-                .untilAsserted(() ->
-                        given()
-                                .baseUri(gatewayUrl)
-                                .get(healthCheckPath)
-                                .then()
-                                .statusCode(404)
-                );
+                .untilAsserted(() -> {
+                    authContext.useAdmin();
+                    given()
+                            .baseUri(gatewayUrl)
+                            .get(healthCheckPath)
+                            .then()
+                            .statusCode(404);
+                });
     }
 }
